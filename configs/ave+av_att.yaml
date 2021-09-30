@@ -1,0 +1,29 @@
+name: ave+av_att
+path:
+    log_dir: /mnt/ssd1/bin/logs/sttn
+    checkpoint_dir: /mnt/ssd1/bin/checkpoints/sttn
+dataset:
+    name: AVE
+    video_dir: /mnt/ssd1/datasets/AVE
+    mask_dir: /mnt/ssd1/datasets/I-mask
+    fps: 8
+    audio_sr: 16000
+    n_refs: 5
+loss:
+    lambda_l1: 1.0
+    lambda_adv: 0.01
+    adv_loss_type: hinge
+    lambda_av_att: 5.0
+    lambda_av_cls: 0.0
+    av_net_ckpt_file: /mnt/ssd1/av_net_ave.pth
+    num_clusters: 10
+train:
+    iter_total: 350000
+    iter_log: 100
+    iter_image_log: 200
+    iter_checkpoint: 1000
+    lr: 1.e-4
+    iter_lr_update_1: 150000
+    iter_lr_update_2: 300000
+    batch_size: 8
+    num_workers: 8

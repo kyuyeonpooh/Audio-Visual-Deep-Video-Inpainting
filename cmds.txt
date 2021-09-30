@@ -1,0 +1,1 @@
+python test.py -c configs/ave.yaml -p /mnt/ssd1/bin/checkpoints/sttn/ave/iter_350000.pth -o /mnt/ssd1/bin -n ave_I_35k_4007 -d 1
