@@ -26,8 +26,8 @@ class Tester:
         os.makedirs(os.path.join(self.output_dir, 'GT'), exist_ok=True)
         os.makedirs(os.path.join(self.output_dir, 'Corrupted'), exist_ok=True)
         os.makedirs(os.path.join(self.output_dir, 'Inpainted'), exist_ok=True)
-        with open(os.path.join(output_dir, 'result.csv'), 'w') as csvfile:
-            self.writer = csv.writer(csvfile)
+        self.csvfile = open(os.path.join(self.output_dir, 'result.csv'), 'w')
+        self.writer = csv.writer(self.csvfile)
 
         self.test_dataset = AVEInpaintingTest(self.dataset_args)
         self.test_loader = DataLoader(
@@ -161,7 +161,8 @@ class Tester:
                 assert gt_frames.shape == comp_frames.shape  # (T, H, W, C)
                 vid_psnr_list.append(self.compute_video_psnr(gt_frames, comp_frames))
                 vid_ssim_list.append(self.compute_video_ssim(gt_frames, comp_frames))
-                self.writer.writerow([video_id[i], '{:.2f}'.format(vid_psnr_list[-1]), '{:.2f}'.format(vid_ssim_list[-1])])
+                self.writer.writerow([video_id[0], '{:.2f}'.format(vid_psnr_list[-1]), '{:.4f}'.format(vid_ssim_list[-1])])
+                self.csvfile.flush()
                 masked_frames = ToImage()(masked_frames[0])
                 self.save_frames(video_id[0], gt_frames, masked_frames, comp_frames)
                 gt_i3d_acts.append(self.get_i3d_activation(gt_frames))
