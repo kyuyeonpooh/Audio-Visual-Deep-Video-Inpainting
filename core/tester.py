@@ -1,7 +1,5 @@
-import math
 import os
-import random
-import time
+import csv
 
 import cv2
 import numpy as np
@@ -26,7 +24,10 @@ class Tester:
         self.output_dir = os.path.join(output_dir, name)
         print('Output dir', self.output_dir)
         os.makedirs(os.path.join(self.output_dir, 'GT'), exist_ok=True)
+        os.makedirs(os.path.join(self.output_dir, 'Corrupted'), exist_ok=True)
         os.makedirs(os.path.join(self.output_dir, 'Inpainted'), exist_ok=True)
+        with open(os.path.join(output_dir, 'result.csv'), 'w') as csvfile:
+            self.writer = csv.writer(csvfile)
 
         self.test_dataset = AVEInpaintingTest(self.dataset_args)
         self.test_loader = DataLoader(
@@ -100,16 +101,20 @@ class Tester:
         s2 = np.cov(comp_i3d_acts, rowvar=False)
         return calculate_frechet_distance(m1, s1, m2, s2)
 
-    def save_frames(self, vid_id, gt_frames, comp_frames):
-        for i, (x, y) in enumerate(zip(gt_frames, comp_frames)):
+    def save_frames(self, vid_id, gt_frames, masked_frames, comp_frames):
+        for i, (x, y, z) in enumerate(zip(gt_frames, masked_frames, comp_frames)):
             im1 = Image.fromarray(x)
             im2 = Image.fromarray(y)
+            im3 = Image.fromarray(z)
             gt_dir = os.path.join(self.output_dir, "GT", vid_id)
+            corr_dir = os.path.join(self.output_dir, 'Corrupted', vid_id)
             fake_dir = os.path.join(self.output_dir, "Inpainted", vid_id)
             os.makedirs(gt_dir, exist_ok=True)
+            os.makedirs(corr_dir, exist_ok=True)
             os.makedirs(fake_dir, exist_ok=True)
-            im1.save(os.path.join(self.output_dir, 'GT', vid_id, f"{str(i+1).zfill(5)}.png"))
-            im2.save(os.path.join(self.output_dir, 'Inpainted', vid_id, f"{str(i+1).zfill(5)}.png"))
+            im1.save(os.path.join(self.output_dir, 'GT', vid_id, f"{str(i+1).zfill(5)}.jpg"))
+            im2.save(os.path.join(self.output_dir, 'Corrupted', vid_id, f"{str(i+1).zfill(5)}.jpg"))
+            im3.save(os.path.join(self.output_dir, 'Inpainted', vid_id, f"{str(i+1).zfill(5)}.jpg"))
 
     def test_checkpoint(self):
         vid_psnr_list = []  # PSNR
@@ -156,8 +161,9 @@ class Tester:
                 assert gt_frames.shape == comp_frames.shape  # (T, H, W, C)
                 vid_psnr_list.append(self.compute_video_psnr(gt_frames, comp_frames))
                 vid_ssim_list.append(self.compute_video_ssim(gt_frames, comp_frames))
-                # self.save_frames(video_id, ToImage()(masked_frames[0]), comp_frames)
-                self.save_frames(video_id[0], gt_frames, comp_frames)
+                self.writer.writerow([video_id[i], '{:.2f}'.format(vid_psnr_list[-1]), '{:.2f}'.format(vid_ssim_list[-1])])
+                masked_frames = ToImage()(masked_frames[0])
+                self.save_frames(video_id[0], gt_frames, masked_frames, comp_frames)
                 gt_i3d_acts.append(self.get_i3d_activation(gt_frames))
                 comp_i3d_acts.append(self.get_i3d_activation(comp_frames))
                 # print(vid_psnr_list,vid_ssim_list)
