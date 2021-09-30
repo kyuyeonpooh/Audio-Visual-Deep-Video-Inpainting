@@ -6,6 +6,7 @@ dataset:
     name: AVE
     video_dir: /mnt/ssd1/datasets/AVE
     mask_dir: /mnt/ssd1/datasets/I-mask
+    mask_type: I
     fps: 8
     audio_sr: 16000
     n_refs: 5

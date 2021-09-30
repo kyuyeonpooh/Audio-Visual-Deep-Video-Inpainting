@@ -43,12 +43,12 @@ class GroupRandomHorizontalFlip:
     """Randomly horizontally flips the given PIL.Image with a probability of 0.5.
     Input is the list of PIL.Images
     """
-    def __init__(self):
-        pass
+    def __init__(self, p=0.5):
+        self.p = p
 
     def __call__(self, img_group: list):
         v = random.random()
-        if v < 0.5:
+        if v < self.p:
             ret = [img.transpose(Image.FLIP_LEFT_RIGHT) for img in img_group]
             return ret
         else:

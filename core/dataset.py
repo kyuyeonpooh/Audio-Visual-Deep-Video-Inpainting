@@ -81,7 +81,7 @@ class MUSICSoloInpainting(Dataset):
 
 
 class AVEInpainting(Dataset):
-    def __init__(self, split: str, dataset_args: dict, get_audio=False):
+    def __init__(self, split: str, dataset_args: dict, mask_type: str, get_audio=False):
         self.split = split
         assert self.split in ['train', 'val', 'test']
         self.video_dir = dataset_args['video_dir']
@@ -91,6 +91,7 @@ class AVEInpainting(Dataset):
         self.n_refs = dataset_args['n_refs']
         self.fps = dataset_args['fps']
         self.sr = dataset_args['audio_sr']
+        self.mask_type = mask_type
         self.get_audio = get_audio
 
         self.video_num_frames = dict()
@@ -101,7 +102,7 @@ class AVEInpainting(Dataset):
         self.hflipper = transforms.RandomHorizontalFlip(1.)
         self.image_transforms = transforms.Compose([
             GroupRandomCrop((224, 224)),
-            GroupRandomHorizontalFlip(),
+            GroupRandomHorizontalFlip(0.5 if mask_type == 'I' else 0.),
             Stack(),
             ToTorchTensor(),
             Normalize()
@@ -110,6 +111,7 @@ class AVEInpainting(Dataset):
             Normalize(mean=-40., std=40.)
         ])
         self.mask_transforms = transforms.Compose([
+            GroupRandomHorizontalFlip(0.5 if mask_type == 'I' else 0.),
             Stack(),
             ToTorchTensor()
         ])
@@ -120,42 +122,45 @@ class AVEInpainting(Dataset):
     def __getitem__(self, index):  # (B, T, C, H, W)
         video_id = self.video_id_list[index]
         all_frames = [f'{str(i).zfill(3)}.png' for i in range(1, self.video_num_frames[video_id] + 1)]
+        frame_index = self.get_frame_index(len(all_frames), self.n_refs)  # sample temporal index
+        
+        frames = list()
+        masks = list()  # hole: 1 (white), visible: 0 (black)
+        specgrams = list()
 
         # Pick random mask
         if self.split == 'train':
-            mask_path = os.path.join(self.mask_dir, f'{str(random.randrange(0, 6000)).zfill(5)}.png')
-            mask = Image.open(mask_path).resize((224, 224)).convert('L')
-            if random.uniform(0, 1) > 0.5:
-                mask = self.hflipper(mask)
-            all_masks = [mask] * len(all_frames)
+            if self.mask_type == 'I':
+                mask_path = os.path.join(self.mask_dir, f'{str(random.randrange(0, 6000)).zfill(5)}.png')
+                mask = Image.open(mask_path).resize((224, 224)).convert('L')
+                masks = [mask] * len(all_frames)
+            elif self.mask_type == 'S':
+                mask_dir = os.path.join(self.mask_dir, self.split, video_id)
+                for i in frame_index:
+                    mask_path = os.path.join(mask_dir, f'{str(i + 1).zfill(3)}.png')
+                    mask = Image.open(mask_path).resize((224, 224)).convert('L')
+                    masks.append(mask)
         else:
             return
             # mask_path = f'{self.mask_dir}/{str(4007).zfill(5)}.png'
             # mask = Image.open(mask_path).resize((self.image_height, self.image_width)).convert('L')
             # all_masks = [mask] * len(all_frames)
 
-        frames = list()
-        masks = list()  # hole: 1 (white), visible: 0 (black)
-        specgrams = list()
-        frame_index = self.get_frame_index(len(all_frames), self.n_refs)  # sample temporal index
-        
         # Frame and masks
         if self.split == 'train':
             for i in frame_index:
                 image_path = os.path.join(self.image_dir, video_id, all_frames[i])
                 image = Image.open(image_path).resize((224, 224))
                 frames.append(image)
-                masks.append(all_masks[i])
-            if random.uniform(0, 1) > 0.5:
-                frames = [self.hflipper(frame) for frame in frames]
         else:
-            for i in all_frames:
-                image_path = f'{self.video_dir}/{self.split}/image/{video_id}/{i}'
-                image = Image.open(image_path)
-                if image.size != self.image_shape:
-                    image.resize(self.image_shape)
-                frames.append(image)
-            masks = all_masks
+            # for i in all_frames:
+            #     image_path = f'{self.video_dir}/{self.split}/image/{video_id}/{i}'
+            #     image = Image.open(image_path)
+            #     if image.size != self.image_shape:
+            #         image.resize(self.image_shape)
+            #     frames.append(image)
+            # masks = all_masks
+            return
 
         # Mel-spectrograms
         if self.get_audio:
@@ -192,9 +197,13 @@ class AVEInpainting(Dataset):
         
         frame_tensors = self.image_transforms(frames)  # (T, C, H, W)
         mask_tensors = self.mask_transforms(masks)  # (T, C, H, W)
-        specgram_tensors = self.specgram_transforms(specgrams) if len(specgrams) > 0 else list()  # (T, 1, H, W)
+        if self.get_audio:
+            specgram_tensors = self.specgram_transforms(specgrams)  # (T, 1, H, W)
+            return frame_tensors, mask_tensors, specgram_tensors
+        else:
+            return frame_tensors, mask_tensors
+
         # data_dict = {'frames': frame_tensors, 'masks': mask_tensors, 'specgrams': specgram_tensors}
-        return frame_tensors, mask_tensors, specgram_tensors
 
     def get_frame_index(self, video_length, n_refs):
         if random.uniform(0, 1) > 0.5:
@@ -255,7 +264,7 @@ class AVEInpaintingTest(Dataset):
         images = torch.cat(images, dim=0)
 
         # All masks
-        mask_path = os.path.join(self.mask_dir, f'{str(4007).zfill(5)}.png')
+        mask_path = os.path.join(self.mask_dir, f'{str(4706).zfill(5)}.png')
         mask = Image.open(mask_path)
         mask = self.mask_transforms(mask).unsqueeze(0)
         masks = [mask] * num_frames

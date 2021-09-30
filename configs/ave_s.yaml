@@ -1,12 +1,12 @@
-name: ave
+name: ave_s
 path:
     log_dir: /mnt/ssd4/bin/logs/sttn
     checkpoint_dir: /mnt/ssd4/bin/checkpoints/sttn
 dataset:
     name: AVE
     video_dir: /mnt/ssd4/datasets/AVE
-    mask_dir: /mnt/ssd4/datasets/I-mask
-    mask_type: I
+    mask_dir: /mnt/ssd4/datasets/S-mask-AVE
+    mask_type: S
     fps: 8
     audio_sr: 16000
     n_refs: 5

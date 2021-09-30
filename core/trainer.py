@@ -49,6 +49,7 @@ class Trainer:
         self.train_dataset = AVEInpainting(
             split='train',
             dataset_args=self.dataset_args,
+            mask_type=self.dataset_args['mask_type'],
             get_audio=self.audio_flag
         )
         self.train_loader = DataLoader(
