@@ -65,7 +65,7 @@ class AVEInpainting(Dataset):
             if self.mask_type == 'I':
                 mask_path = os.path.join(self.mask_dir, f'{str(random.randrange(0, 6000)).zfill(5)}.png')
                 mask = Image.open(mask_path).resize((224, 224)).convert('L')
-                masks = [mask] * num_frames
+                masks = [mask] * len(frame_index)
             elif self.mask_type == 'S':
                 mask_dir = os.path.join(self.mask_dir, self.split, video_id)
                 for i in frame_index:
@@ -249,7 +249,7 @@ class MUSICSoloInpainting(Dataset):
             if self.mask_type == 'I':
                 mask_path = os.path.join(self.mask_dir, f'{str(random.randrange(0, 6000)).zfill(5)}.png')
                 mask = Image.open(mask_path).resize((224, 224)).convert('L')
-                masks = [mask] * num_frames
+                masks = [mask] * len(frame_index)
             elif self.mask_type == 'S':
                 mask_dir = os.path.join(self.mask_dir, self.split, video_id)
                 for i in frame_index:
