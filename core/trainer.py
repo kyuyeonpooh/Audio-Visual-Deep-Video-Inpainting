@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader
 from torchvision.utils import make_grid
 from tensorboardX import SummaryWriter
 
-from core.dataset import AVEInpainting
+from core.dataset import AVEInpainting, MUSICSoloInpainting
 from core.loss import *
 from models.sttn import *
 from models.avnet import AudioVisualAttention
@@ -46,7 +46,12 @@ class Trainer:
 
         # Set dataset and data loader
         self.audio_flag = self.loss_args['lambda_av_att'] > 0 or self.loss_args['lambda_av_cls'] > 0
-        self.train_dataset = AVEInpainting(
+        dataset_map = {
+            'AVE': AVEInpainting,
+            'MUSIC-Solo': MUSICSoloInpainting
+        }
+        dataset_class = dataset_map[self.dataset_args['name']]
+        self.train_dataset = dataset_class(
             split='train',
             dataset_args=self.dataset_args,
             mask_type=self.dataset_args['mask_type'],
@@ -71,7 +76,7 @@ class Trainer:
             vis_net = resnet18(modal='V')
             aud_net = resnet18(modal='A')
             self.av_net = AudioVisualAttention(vis_net, aud_net, self.loss_args['num_clusters'])
-            self.av_net.load_state_dict(torch.load(self.loss_args['av_net_ckpt_file'], map_location=self.device))
+            self.av_net.load_state_dict(torch.load(self.path_args['avnet_ckpt_file'], map_location=self.device))
             self.av_net.eval()
             self.av_net.to(self.device)
             for param in self.av_net.parameters():
@@ -99,8 +104,9 @@ class Trainer:
             lr=self.train_args['lr'],
         )
         self.load()
-        self.netG = DataParallel(self.netG)
-        self.netD = DataParallel(self.netD)
+        if torch.cuda.device_count() > 1:
+            self.netG = DataParallel(self.netG)
+            self.netD = DataParallel(self.netD)
 
     def load(self):
         if os.path.isfile(os.path.join(self.checkpoint_dir, 'latest_ckpt.txt')):
@@ -122,6 +128,11 @@ class Trainer:
             self.iteration = ckpt_bundle['iteration']
         else:
             print('No trained model found. An initialized model will be used.')
+            if self.dataset_args['name'] == 'MUSIC-Solo':
+                ave_ckpt_bundle = torch.load(self.path_args['ave_ckpt_path'], map_location=self.device)
+                self.netG.load_state_dict(ave_ckpt_bundle['netG'])
+                self.netD.load_state_dict(ave_ckpt_bundle['netD'])
+                print('Loaded pretrained weights from', self.path_args['ave_ckpt_path'])
 
     def save(self, iteration: int):
         ckpt_path = os.path.join(self.checkpoint_dir, f'iter_{str(iteration).zfill(6)}.pth')

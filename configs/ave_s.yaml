@@ -2,6 +2,8 @@ name: ave_s
 path:
     log_dir: /mnt/ssd4/bin/logs/sttn
     checkpoint_dir: /mnt/ssd4/bin/checkpoints/sttn
+    ave_ckpt_File: ave_I_350k.pth
+    av_net_ckpt_file: /mnt/ssd4/av_net_ave.pth
 dataset:
     name: AVE
     video_dir: /mnt/ssd4/datasets/AVE
@@ -16,7 +18,6 @@ loss:
     adv_loss_type: hinge
     lambda_av_att: 0.0
     lambda_av_cls: 0.0
-    av_net_ckpt_file: /mnt/ssd4/av_net_ave.pth
     num_clusters: 10
 train:
     iter_total: 350000
