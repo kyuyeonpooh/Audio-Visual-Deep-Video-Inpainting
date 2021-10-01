@@ -6,7 +6,7 @@ path:
     avnet_ckpt_path: avnet_music_pretrained.pth
 dataset:
     name: MUSIC-Solo
-    video_dir: /mnt/ssd1/datasets/AVE
+    video_dir: /mnt/ssd1/datasets/MUSIC-Solo
     mask_dir: /mnt/ssd1/datasets/I-mask
     mask_type: I
     fps: 8
