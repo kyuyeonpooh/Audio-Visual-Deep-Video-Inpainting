@@ -6,8 +6,8 @@ path:
     avnet_ckpt_path: avnet_music_pretrained.pth
 dataset:
     name: MUSIC-Solo
-    video_dir: /mnt/ssd1/datasets/MUSIC-Solo
-    mask_dir: /mnt/ssd1/datasets/I-mask
+    video_dir: datasets/MUSIC-Solo
+    mask_dir: datasets/I-mask
     mask_type: I
     fps: 8
     audio_sr: 16000
@@ -20,12 +20,12 @@ loss:
     lambda_av_cls: 0.0
     num_clusters: 10
 train:
-    iter_total: 150000
+    iter_total: 100000
     iter_log: 100
     iter_image_log: 200
     iter_checkpoint: 1000
     lr: 1.e-4
-    iter_lr_update_1: 100000
-    iter_lr_update_2: 150000
+    iter_lr_update_1: 50000
+    iter_lr_update_2: 100000
     batch_size: 8
     num_workers: 8
